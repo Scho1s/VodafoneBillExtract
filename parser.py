@@ -17,12 +17,9 @@ import pandas as pd
 start = time()
 
 
-def reformat_match(pattern, string):
+def _match(pattern):
     if pattern:
-        if "min" in pattern[0]:
-            return pattern[0].replace(string, "").replace(" min", "")
-        elif "MB" in pattern[0]:
-            return pattern[0].replace(string, "").replace(" MB", "")
+        return pattern[0]
     return 0
 
 
@@ -31,17 +28,13 @@ table_dict = {}
 df = pd.DataFrame()
 
 # Constants
-CALLS = r"UK calls "
-ABROAD = r"Calling abroad from the UK "
-NON_GEO = r"Calling non-geographic numbers "
-DATA = r"UK mobile data "
 TRIGGER = "Usage summary"
 
 # Regex patterns
-uk_calls = CALLS + r".*?\smin"
-abroad_calls = ABROAD + r".*?\smin"
-non_geo_calls = NON_GEO + r".*?\smin"
-mobile_data = DATA + r"*.*?\sMB"
+uk_calls = r"(?<=UK calls ).*?(?=\smin)"
+abroad_calls = r"(?<=Calling abroad from the UK ).*?(?=\smin)"
+non_geo_calls = r"(?<=Calling non-geographic numbers ).*?(?=\smin)"
+mobile_data = r"(?<=UK mobile data ).*?(?=\sMB)"
 name = r"\b\w+\b\s\b[\w-]+\n07\d{9}"
 
 files = [_ for _ in list(*os.walk(home_dir))[2] if _.endswith(".pdf")]
@@ -58,10 +51,10 @@ for file in files:
             table_dict[len(table_dict)] = {'User': _name,
                                            'Phone Number': _number,
                                            'Date': bill_date,
-                                           'UK (Minutes)': reformat_match(re.findall(uk_calls, text), CALLS),
-                                           'International (Minutes)': reformat_match(re.findall(abroad_calls, text), ABROAD),
-                                           'Non-geographic (Minutes)': reformat_match(re.findall(non_geo_calls, text), NON_GEO),
-                                           'Data (MB)': reformat_match(re.findall(mobile_data, text), DATA),
+                                           'UK (Minutes)': _match(re.findall(uk_calls, text)),
+                                           'International (Minutes)': _match(re.findall(abroad_calls, text)),
+                                           'Non-geographic (Minutes)': _match(re.findall(non_geo_calls, text)),
+                                           'Data (MB)': _match(re.findall(mobile_data, text)),
                                            }
 
 print("Saving into excel...")
