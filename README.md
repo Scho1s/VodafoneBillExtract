@@ -1,3 +1,3 @@
-Vodafone detailed bill breakdown for the company comed in one pdf file, each month. A file may contain over 60 pages.
+Vodafone detailed bill breakdown for the company comed in one pdf file, each month.
 
-The script loops through the bills, extracts user name, phone number, bill date, UK minutes, international minutes, data usage in megabytes and text, puts everything into the dataframe and saves as excel file.
+The script loops through the pdf files, extracts user name, phone number, bill date, UK minutes, international minutes, text messages and data usage in megabytes, puts everything into the dataframe and saves as an excel file.
