@@ -15,7 +15,6 @@ from time import time
 from logger import Logger
 import pandas as pd
 
-start = time()
 logger = Logger(__name__)
 
 # Constants
@@ -38,49 +37,45 @@ def _match(pattern):
 
 
 def export(dict_):
-    df = pd.DataFrame.from_dict(dict_, orient='index').astype({'Date': 'datetime64[ns]',
-                                                               'UK (Minutes)': 'int32',
-                                                               'International (Minutes)': 'int32',
-                                                               'Non-geographic (Minutes)': 'int32',
-                                                               'Data (MB)': 'float',
-                                                               })
+    df = pd.DataFrame.from_dict(dict_, orient='index') .fillna(0)
+    df = df.astype({'Date': 'datetime64[ns]',
+                    'UK (Minutes)': 'int32',
+                    'International (Minutes)': 'int32',
+                    'Non-geographic (Minutes)': 'int32',
+                    'Data (MB)': 'float',
+                    })
     df.to_excel(os.path.join(root_path, EXPORTED_FILE), sheet_name='Data')
 
 
-home_dir = os.path.join("C:", os.environ["HOMEPATH"], "Desktop", "Vodafone")
-table_dict = {}
-df = pd.DataFrame()
+if __name__ == "__main__":
+    try:
+        start = time()
+        home_dir = os.path.join("C:", os.environ["HOMEPATH"], "Desktop", "Vodafone")
+        table_dict = {}
+        df = pd.DataFrame()
+        files = [_ for _ in list(*os.walk(home_dir))[2] if _.endswith(".pdf")]
+        root_path = list(*os.walk(home_dir))[0]
 
+        for file in files:
+            bill_date = file[file.find("_", 0)+1:-4]
+            reader = PdfReader(os.path.join(root_path, file))
+            logger.info(f"Reading file {bill_date}")
+            for page in reader.pages:
+                text = page.extract_text()
+                if TRIGGER in text:
+                    _name, _number = re.search(name, text)[0].split("\n")
+                    table_dict[len(table_dict)] = {'User': _name,
+                                                   'Phone Number': _number,
+                                                   'Date': bill_date,
+                                                   'UK (Minutes)': _match(re.findall(uk_calls, text)),
+                                                   'International (Minutes)': _match(re.findall(abroad_calls, text)),
+                                                   'Non-geographic (Minutes)': _match(re.findall(non_geo_calls, text)),
+                                                   'Data (MB)': _match(re.findall(mobile_data, text)),
+                                                   }
 
-files = [_ for _ in list(*os.walk(home_dir))[2] if _.endswith(".pdf")]
-root_path = list(*os.walk(home_dir))[0]
+        logger.info("Saving into excel...")
+        export(table_dict)
+        logger.info(f"Time lapsed: {time() - start} seconds")
+    except Exception as e:
+        logger.info(e)
 
-try:
-    for file in files:
-        bill_date = file[file.find("_", 0)+1:-4]
-        reader = PdfReader(os.path.join(root_path, file))
-        logger.info(f"Reading file {bill_date}")
-        for page in reader.pages:
-            text = page.extract_text()
-            if TRIGGER in text:
-                _name, _number = re.search(name, text)[0].split("\n")
-                table_dict[len(table_dict)] = {'User': _name,
-                                               'Phone Number': _number,
-                                               'Date': bill_date,
-                                               'UK (Minutes)': _match(re.findall(uk_calls, text)),
-                                               'International (Minutes)': _match(re.findall(abroad_calls, text)),
-                                               'Non-geographic (Minutes)': _match(re.findall(non_geo_calls, text)),
-                                               'Data (MB)': _match(re.findall(mobile_data, text)),
-                                               }
-
-    logger.info("Saving into excel...")
-    df = pd.DataFrame.from_dict(table_dict, orient='index').astype({'Date': 'datetime64[ns]',
-                                                                    'UK (Minutes)': 'int32',
-                                                                    'International (Minutes)': 'int32',
-                                                                    'Non-geographic (Minutes)': 'int32',
-                                                                    'Data (MB)': 'float',
-                                                                    })
-    df.to_excel(os.path.join(root_path, "result.xlsx"), sheet_name='Data')
-    logger.info(f"Time lapsed: {time() - start} seconds")
-except Exception as e:
-    logger.info(e)
